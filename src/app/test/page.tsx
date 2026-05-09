@@ -212,7 +212,7 @@ function TestContent() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Part 2: Scoring Sheet</CardTitle>
-              <p className="text-xs text-muted-foreground">{part2Selected} statements selected (target: ~40)</p>
+              <p className="text-xs text-muted-foreground">{part2Selected}/40 selected (max 20 per style, total should be 40)</p>
             </CardHeader>
             <CardContent className="space-y-4">
               {(Object.keys(styleScores) as StyleType[]).map((style) => {
@@ -357,47 +357,85 @@ function TestContent() {
           </>
         )}
 
-        {/* PART 2 */}
+        {/* PART 2 — Paired Questions: pick ONE from each pair */}
         {step === "part2" && (() => {
-          const pageSize = 20;
-          const totalPages = Math.ceil(competencyQuestions.length / pageSize);
-          const pageQuestions = competencyQuestions.slice(part2Page * pageSize, (part2Page + 1) * pageSize);
+          // Build pairs: [Q1,Q2], [Q3,Q4], ..., [Q79,Q80]
+          const pairs: [typeof competencyQuestions[0], typeof competencyQuestions[0]][] = [];
+          for (let i = 0; i < competencyQuestions.length; i += 2) {
+            pairs.push([competencyQuestions[i], competencyQuestions[i + 1]]);
+          }
+
+          const pairsPerPage = 10;
+          const totalPages = Math.ceil(pairs.length / pairsPerPage);
+          const pagePairs = pairs.slice(part2Page * pairsPerPage, (part2Page + 1) * pairsPerPage);
+
+          const pairsAnswered = pairs.filter(([a, b]) => part2[a.id] || part2[b.id]).length;
+
+          const handlePairSelect = (selectedId: number, otherId: number) => {
+            setPart2((p) => ({ ...p, [selectedId]: true, [otherId]: false }));
+          };
 
           return (
             <>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h2 className="text-sm font-bold">Part 2: Competency Analysis</h2>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px]">{part2Selected} selected</Badge>
+                  <Badge variant="outline" className="text-[10px]">{pairsAnswered}/40 answered</Badge>
                   <Badge variant="secondary" className="text-[10px]">Page {part2Page + 1}/{totalPages}</Badge>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Select statements that describe you. Aim for ~40 total.</p>
+              <p className="text-xs text-muted-foreground">For each pair, select the ONE statement that describes you better.</p>
 
-              <div className="space-y-1.5">
-                {pageQuestions.map((q) => {
-                  const checked = !!part2[q.id];
+              <div className="space-y-3">
+                {pagePairs.map(([qA, qB], idx) => {
+                  const pairNum = part2Page * pairsPerPage + idx + 1;
+                  const aSelected = !!part2[qA.id];
+                  const bSelected = !!part2[qB.id];
                   return (
-                    <Card
-                      key={q.id}
-                      className={`cursor-pointer transition-colors ${checked ? "border-primary bg-muted/50" : "hover:bg-muted/30"}`}
-                      onClick={() => setPart2((p) => ({ ...p, [q.id]: !p[q.id] }))}
-                    >
-                      <CardContent className="p-3 flex items-start gap-3">
-                        <div className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                          checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
-                        }`}>
-                          {checked && (
-                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                    <Card key={qA.id} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="px-3 py-1.5 bg-muted/50 border-b">
+                          <span className="text-[10px] font-bold text-muted-foreground">Pair {pairNum} of 40</span>
                         </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <p className="text-xs font-medium leading-relaxed">
-                            <span className="text-muted-foreground mr-1.5">{q.id}.</span>{q.textEn}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground italic">{q.textHi}</p>
+
+                        {/* Option A */}
+                        <div
+                          className={`px-3 py-3 cursor-pointer transition-colors flex items-start gap-3 border-b ${
+                            aSelected ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30 border-l-2 border-l-transparent"
+                          }`}
+                          onClick={() => handlePairSelect(qA.id, qB.id)}
+                        >
+                          <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                            aSelected ? "border-primary" : "border-muted-foreground/30"
+                          }`}>
+                            {aSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-xs font-medium leading-relaxed">
+                              <span className="text-muted-foreground mr-1.5">{qA.id}.</span>{qA.textEn}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground italic">{qA.textHi}</p>
+                          </div>
+                        </div>
+
+                        {/* Option B */}
+                        <div
+                          className={`px-3 py-3 cursor-pointer transition-colors flex items-start gap-3 ${
+                            bSelected ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30 border-l-2 border-l-transparent"
+                          }`}
+                          onClick={() => handlePairSelect(qB.id, qA.id)}
+                        >
+                          <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                            bSelected ? "border-primary" : "border-muted-foreground/30"
+                          }`}>
+                            {bSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-xs font-medium leading-relaxed">
+                              <span className="text-muted-foreground mr-1.5">{qB.id}.</span>{qB.textEn}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground italic">{qB.textHi}</p>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
