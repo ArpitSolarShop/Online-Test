@@ -151,7 +151,7 @@ function TestContent() {
               <p className="font-semibold">Before you start:</p>
               <ul className="list-disc pl-4 space-y-0.5">
                 <li>Part 1: 20 True/False questions on listening habits</li>
-                <li>Part 2: 80 statements — select the ones that describe you (~40)</li>
+                <li>Part 2: 40 pairs of statements — pick ONE from each pair</li>
                 <li>Timer starts when you click &quot;Start Test&quot;</li>
                 <li>Test auto-submits when time runs out</li>
               </ul>
