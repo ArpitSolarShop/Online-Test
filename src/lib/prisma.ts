@@ -13,9 +13,8 @@ function getPrisma(): PrismaClient {
   return globalForPrisma.prisma;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop: string | symbol) {
-    return (getPrisma() as any)[prop];
+    return (getPrisma() as unknown as Record<string | symbol, unknown>)[prop];
   },
 });

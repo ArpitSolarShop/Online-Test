@@ -30,7 +30,13 @@ function TestContent() {
   const [secondsLeft, setSecondsLeft] = useState(timeLimitMin * 60);
   const [timerActive, setTimerActive] = useState(false);
 
-  const linkExpired = expiresAt > 0 && Date.now() > expiresAt;
+  const [linkExpired, setLinkExpired] = useState(false);
+
+  useEffect(() => {
+    if (expiresAt > 0 && Date.now() > expiresAt) {
+      setTimeout(() => setLinkExpired(true), 0);
+    }
+  }, [expiresAt]);
 
   useEffect(() => {
     if (!timerActive || secondsLeft <= 0) return;
@@ -42,21 +48,6 @@ function TestContent() {
     }, 1000);
     return () => clearInterval(interval);
   }, [timerActive, secondsLeft]);
-
-  useEffect(() => {
-    if (timerActive && secondsLeft === 0 && step !== "results") {
-      setStep("results");
-      setTimerActive(false);
-    }
-  }, [secondsLeft, timerActive, step]);
-
-  const startTest = () => { setStep("part1"); setTimerActive(true); };
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
-  };
 
   const submitTest = useCallback(() => {
     setStep("results");
@@ -78,6 +69,22 @@ function TestContent() {
       }),
     }).catch((err) => console.error("Failed to save result:", err));
   }, [candidateName, candidatePhone, candidateRole, timeLimitMin, part1, part2, searchParams]);
+
+  useEffect(() => {
+    if (timerActive && secondsLeft === 0 && step !== "results") {
+      setTimeout(() => submitTest(), 0);
+    }
+  }, [secondsLeft, timerActive, step, submitTest]);
+
+  const startTest = () => { setStep("part1"); setTimerActive(true); };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
+
+
 
   const falseCount = Object.values(part1).filter((v) => v === false).length;
 

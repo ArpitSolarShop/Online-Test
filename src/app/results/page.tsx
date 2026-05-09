@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface Result {
@@ -41,8 +42,8 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchResults = async () => {
-    setLoading(true);
+  const fetchResults = async (isRefresh = false) => {
+    if (isRefresh) setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/results");
@@ -57,7 +58,7 @@ export default function ResultsPage() {
   };
 
   useEffect(() => {
-    fetchResults();
+    setTimeout(() => fetchResults(false), 0);
   }, []);
 
   const formatDate = (iso: string) =>
@@ -71,9 +72,9 @@ export default function ResultsPage() {
       <header className="border-b px-4 sm:px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-accent hover:text-accent-foreground transition-colors">
+            <Link href="/" className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-accent hover:text-accent-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" />
-            </a>
+            </Link>
             <div>
               <h1 className="text-base sm:text-lg font-bold tracking-tight">
                 Test Results
@@ -83,7 +84,7 @@ export default function ResultsPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchResults} disabled={loading} className="text-xs">
+          <Button variant="outline" size="sm" onClick={() => fetchResults(true)} disabled={loading} className="text-xs">
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>

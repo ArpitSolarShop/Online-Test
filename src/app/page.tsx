@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Copy, Check, Link2, Trash2, Clock, User, Phone, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,10 +36,20 @@ export default function HRDashboard() {
   const [links, setLinks] = useState<GeneratedLink[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    setTimeout(() => setNow(Date.now()), 0);
+    const interval = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem("hr_test_links");
     if (saved) {
-      try { setLinks(JSON.parse(saved)); } catch { /* ignore */ }
+      setTimeout(() => {
+        try { setLinks(JSON.parse(saved)); } catch { /* ignore */ }
+      }, 0);
     }
   }, []);
 
@@ -93,7 +104,7 @@ export default function HRDashboard() {
     setLinks((prev) => prev.filter((l) => l.id !== id));
   };
 
-  const isExpired = (link: GeneratedLink) => Date.now() > link.expiresAt;
+  const isExpired = (link: GeneratedLink) => now > 0 && now > link.expiresAt;
 
   const formatDate = (ts: number) => {
     return new Date(ts).toLocaleString("en-IN", {
@@ -116,9 +127,9 @@ export default function HRDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/results" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+            <Link href="/results" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
               View Results
-            </a>
+            </Link>
             <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">HR Admin</Badge>
           </div>
         </div>

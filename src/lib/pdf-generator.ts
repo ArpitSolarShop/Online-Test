@@ -100,7 +100,6 @@ export async function generateResultPDF(data: ResultData): Promise<Buffer> {
     ];
 
     const tableTop = doc.y;
-    const colWidths = [150, 80, 80, pageWidth - 310];
 
     // Header row
     doc.font("Helvetica-Bold");
