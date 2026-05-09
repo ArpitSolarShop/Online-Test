@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { appendResultToSheet } from "@/lib/google-sheets";
 import { generateResultPDF } from "@/lib/pdf-generator";
 import { uploadPDFToDrive } from "@/lib/google-drive";
 
@@ -38,7 +37,6 @@ export async function POST(req: NextRequest) {
     else if (falseCount <= 15) listeningRating = "practice";
 
     // Calculate Part 2: style scores
-    // Import the style mapping from questions data
     const styleMap: Record<number, string> = {};
     const { competencyQuestions } = await import("@/data/questions");
     competencyQuestions.forEach((q) => {
@@ -67,7 +65,7 @@ export async function POST(req: NextRequest) {
       scores[a] >= scores[b] ? a : b
     );
 
-    // Save to Prisma/Postgres
+    // Save to Neon Postgres via Prisma
     const result = await prisma.testResult.create({
       data: {
         candidateName,
@@ -88,31 +86,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Sync to Google Sheets (non-blocking — don't fail if Sheets fails)
-    const synced = await appendResultToSheet({
-      candidateName,
-      candidatePhone,
-      candidateRole,
-      timeLimitMin: timeLimitMin || 60,
-      falseCount,
-      listeningRating,
-      actionScore,
-      processScore,
-      peopleScore,
-      ideaScore,
-      dominantStyle,
-      totalSelected,
-      createdAt: result.createdAt.toISOString(),
-    });
-
-    if (synced) {
-      await prisma.testResult.update({
-        where: { id: result.id },
-        data: { syncedToSheet: true },
-      });
-    }
-
-    // Generate PDF and upload to Google Drive (non-blocking)
+    // Generate PDF and upload to Google Drive
     let driveLink: string | null = null;
     try {
       const pdfBuffer = await generateResultPDF({
@@ -145,7 +119,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       id: result.id,
-      sheetsSync: synced,
       driveLink,
     });
   } catch (error) {

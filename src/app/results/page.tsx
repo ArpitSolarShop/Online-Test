@@ -20,7 +20,6 @@ interface Result {
   ideaScore: number;
   dominantStyle: string;
   totalSelected: number;
-  syncedToSheet: boolean;
 }
 
 const ratingColors: Record<string, string> = {
@@ -126,7 +125,6 @@ export default function ResultsPage() {
                   <th className="text-center py-2.5 px-2 font-bold">PE</th>
                   <th className="text-center py-2.5 px-2 font-bold">I</th>
                   <th className="text-center py-2.5 px-2 font-bold">Dominant</th>
-                  <th className="text-center py-2.5 px-2 font-bold hidden sm:table-cell">Sheet</th>
                   <th className="text-left py-2.5 px-2 font-bold hidden md:table-cell">Date</th>
                 </tr>
               </thead>
@@ -152,13 +150,6 @@ export default function ResultsPage() {
                     <td className="py-2.5 px-2 text-center font-mono font-bold">{r.ideaScore}</td>
                     <td className="py-2.5 px-2 text-center">
                       <Badge className="text-[10px]">{r.dominantStyle}</Badge>
-                    </td>
-                    <td className="py-2.5 px-2 text-center hidden sm:table-cell">
-                      {r.syncedToSheet ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600 inline" />
-                      ) : (
-                        <XCircle className="w-3.5 h-3.5 text-muted-foreground/40 inline" />
-                      )}
                     </td>
                     <td className="py-2.5 px-2 text-muted-foreground hidden md:table-cell whitespace-nowrap">
                       {formatDate(r.createdAt)}

@@ -32,7 +32,6 @@ model TestResult {
 
   // Meta
   linkId    String?
-  syncedToSheet Boolean @default(false)
 
   @@index([candidatePhone])
   @@index([createdAt])

@@ -22,7 +22,6 @@ export async function GET() {
         ideaScore: true,
         dominantStyle: true,
         totalSelected: true,
-        syncedToSheet: true,
       },
     });
     return NextResponse.json({ results });
