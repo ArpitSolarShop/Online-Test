@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { appendResultToSheet } from "@/lib/google-sheets";
+import { generateResultPDF } from "@/lib/pdf-generator";
+import { uploadPDFToDrive } from "@/lib/google-drive";
 
 export const dynamic = "force-dynamic";
 
@@ -110,10 +112,41 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Generate PDF and upload to Google Drive (non-blocking)
+    let driveLink: string | null = null;
+    try {
+      const pdfBuffer = await generateResultPDF({
+        candidateName,
+        candidatePhone,
+        candidateRole,
+        createdAt: result.createdAt.toISOString(),
+        falseCount,
+        listeningRating,
+        actionScore,
+        processScore,
+        peopleScore,
+        ideaScore,
+        dominantStyle,
+        totalSelected,
+      });
+
+      const safeName = candidateName.replace(/[^a-zA-Z0-9]/g, "_");
+      const dateStr = new Date().toISOString().split("T")[0];
+      const fileName = `${safeName}_${candidateRole.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.pdf`;
+
+      const driveResult = await uploadPDFToDrive(pdfBuffer, fileName);
+      if (driveResult) {
+        driveLink = driveResult.webViewLink;
+      }
+    } catch (pdfErr) {
+      console.error("[submit-result] PDF/Drive error:", pdfErr);
+    }
+
     return NextResponse.json({
       success: true,
       id: result.id,
       sheetsSync: synced,
+      driveLink,
     });
   } catch (error) {
     console.error("[submit-result] Error:", error);
