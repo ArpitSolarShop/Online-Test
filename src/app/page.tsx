@@ -115,7 +115,12 @@ export default function HRDashboard() {
               Listening Attitude & Communication Competency Test
             </p>
           </div>
-          <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">HR Admin</Badge>
+          <div className="flex items-center gap-2">
+            <a href="/results" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+              View Results
+            </a>
+            <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">HR Admin</Badge>
+          </div>
         </div>
       </header>
 

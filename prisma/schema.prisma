@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TestResult {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Candidate info
+  candidateName  String
+  candidatePhone String
+  candidateRole  String
+  timeLimitMin   Int
+
+  // Part 1: Listening Attitude
+  listeningAnswers Json   // { "1": true, "2": false, ... }
+  falseCount       Int
+  listeningRating  String // "empathetic" | "good" | "practice" | "poor"
+
+  // Part 2: Competency Analysis
+  competencyAnswers Json  // { "1": true, "2": false, ... }
+  actionScore       Int
+  processScore      Int
+  peopleScore       Int
+  ideaScore         Int
+  dominantStyle     String // "Action" | "Process" | "People" | "Idea"
+  totalSelected     Int
+
+  // Meta
+  linkId    String?
+  syncedToSheet Boolean @default(false)
+
+  @@index([candidatePhone])
+  @@index([createdAt])
+}

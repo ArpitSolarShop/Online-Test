@@ -61,7 +61,23 @@ function TestContent() {
   const submitTest = useCallback(() => {
     setStep("results");
     setTimerActive(false);
-  }, []);
+
+    // POST results to API (non-blocking — don't delay showing results)
+    const linkId = searchParams.get("id") || undefined;
+    fetch("/api/submit-result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        candidateName,
+        candidatePhone,
+        candidateRole,
+        timeLimitMin,
+        listeningAnswers: part1,
+        competencyAnswers: part2,
+        linkId,
+      }),
+    }).catch((err) => console.error("Failed to save result:", err));
+  }, [candidateName, candidatePhone, candidateRole, timeLimitMin, part1, part2, searchParams]);
 
   const falseCount = Object.values(part1).filter((v) => v === false).length;
 
