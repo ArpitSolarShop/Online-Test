@@ -22,6 +22,7 @@ export async function GET() {
         ideaScore: true,
         dominantStyle: true,
         totalSelected: true,
+        pdfPath: true,
       },
     });
     return NextResponse.json({ results });

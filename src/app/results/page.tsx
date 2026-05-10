@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ interface Result {
   ideaScore: number;
   dominantStyle: string;
   totalSelected: number;
+  pdfPath: string | null;
 }
 
 const ratingColors: Record<string, string> = {
@@ -41,6 +42,7 @@ export default function ResultsPage() {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState<string | null>(null);
 
   const fetchResults = async (isRefresh = false) => {
     if (isRefresh) setLoading(true);
@@ -66,6 +68,23 @@ export default function ResultsPage() {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
+
+  const viewPDF = async (resultId: string) => {
+    setLoadingPdf(resultId);
+    try {
+      const res = await fetch(`/api/results/pdf?id=${resultId}`);
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, "_blank");
+      } else {
+        alert(data.error || "Failed to load PDF");
+      }
+    } catch {
+      alert("Failed to load PDF");
+    } finally {
+      setLoadingPdf(null);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -127,6 +146,7 @@ export default function ResultsPage() {
                   <th className="text-center py-2.5 px-2 font-bold">I</th>
                   <th className="text-center py-2.5 px-2 font-bold">Dominant</th>
                   <th className="text-left py-2.5 px-2 font-bold hidden md:table-cell">Date</th>
+                  <th className="text-center py-2.5 px-2 font-bold">PDF</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,6 +174,29 @@ export default function ResultsPage() {
                     </td>
                     <td className="py-2.5 px-2 text-muted-foreground hidden md:table-cell whitespace-nowrap">
                       {formatDate(r.createdAt)}
+                    </td>
+                    <td className="py-2.5 px-2 text-center">
+                      {r.pdfPath ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] gap-1"
+                          onClick={() => viewPDF(r.id)}
+                          disabled={loadingPdf === r.id}
+                        >
+                          {loadingPdf === r.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <>
+                              <FileText className="w-3 h-3" />
+                              <span className="hidden sm:inline">View</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -186,7 +229,21 @@ export default function ResultsPage() {
                     <Badge variant="outline" className={`text-[9px] ${ratingColors[r.listeningRating] || ""}`}>
                       {ratingLabels[r.listeningRating] || r.listeningRating} ({r.falseCount} false)
                     </Badge>
-                    <span className="text-muted-foreground">{formatDate(r.createdAt)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{formatDate(r.createdAt)}</span>
+                      {r.pdfPath && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[9px] gap-1 px-2"
+                          onClick={() => viewPDF(r.id)}
+                          disabled={loadingPdf === r.id}
+                        >
+                          <FileText className="w-3 h-3" />
+                          PDF
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

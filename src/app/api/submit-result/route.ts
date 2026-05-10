@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateResultPDF } from "@/lib/pdf-generator";
-import { uploadPDFToDrive } from "@/lib/google-drive";
+import { uploadPDFToSupabase } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -86,14 +86,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Generate PDF and upload to Google Drive
-    let driveLink: string | null = null;
+    // Generate PDF and upload to Supabase Storage
+    let pdfPath: string | null = null;
     try {
       const pdfBuffer = await generateResultPDF({
         candidateName,
         candidatePhone,
         candidateRole,
         createdAt: result.createdAt.toISOString(),
+        listeningAnswers: listeningAnswers || {},
+        competencyAnswers: competencyAnswers || {},
         falseCount,
         listeningRating,
         actionScore,
@@ -108,18 +110,24 @@ export async function POST(req: NextRequest) {
       const dateStr = new Date().toISOString().split("T")[0];
       const fileName = `${safeName}_${candidateRole.replace(/[^a-zA-Z0-9]/g, "_")}_${dateStr}.pdf`;
 
-      const driveResult = await uploadPDFToDrive(pdfBuffer, fileName);
-      if (driveResult) {
-        driveLink = driveResult.webViewLink;
+      const uploadResult = await uploadPDFToSupabase(pdfBuffer, fileName);
+      if (uploadResult) {
+        pdfPath = uploadResult.path;
+
+        // Update the record with the PDF path
+        await prisma.testResult.update({
+          where: { id: result.id },
+          data: { pdfPath },
+        });
       }
     } catch (pdfErr) {
-      console.error("[submit-result] PDF/Drive error:", pdfErr);
+      console.error("[submit-result] PDF/Storage error:", pdfErr);
     }
 
     return NextResponse.json({
       success: true,
       id: result.id,
-      driveLink,
+      pdfPath,
     });
   } catch (error) {
     console.error("[submit-result] Error:", error);
