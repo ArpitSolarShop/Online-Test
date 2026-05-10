@@ -35,7 +35,7 @@ export default function HRDashboard() {
   const [timeLimit, setTimeLimit] = useState("60");
   const [links, setLinks] = useState<GeneratedLink[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
+  const [sendingWaId, setSendingWaId] = useState<string | null>(null);
   const [now, setNow] = useState(0);
 
   useEffect(() => {
@@ -98,6 +98,27 @@ export default function HRDashboard() {
     navigator.clipboard.writeText(link.url);
     setCopiedId(link.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const sendWhatsApp = async (link: GeneratedLink) => {
+    setSendingWaId(link.id);
+    try {
+      const res = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: link.phone, name: link.name, url: link.url }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("WhatsApp message sent successfully!");
+      } else {
+        alert(`Failed to send WhatsApp: ${data.error}`);
+      }
+    } catch (err) {
+      alert("Failed to send WhatsApp message.");
+    } finally {
+      setSendingWaId(null);
+    }
   };
 
   const deleteLink = (id: string) => {
@@ -188,20 +209,30 @@ export default function HRDashboard() {
               {/* Time Limit */}
               <div className="space-y-1.5">
                 <Label className="text-xs flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Time Limit
+                  <Clock className="w-3 h-3" /> Time Limit (Minutes)
                 </Label>
-                <Select value={timeLimit} onValueChange={(val) => setTimeLimit(val ?? "60")}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 Minutes</SelectItem>
-                    <SelectItem value="45">45 Minutes</SelectItem>
-                    <SelectItem value="60">1 Hour (Default)</SelectItem>
-                    <SelectItem value="90">1.5 Hours</SelectItem>
-                    <SelectItem value="120">2 Hours</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Input 
+                    type="number" 
+                    value={timeLimit} 
+                    onChange={(e) => setTimeLimit(e.target.value)} 
+                    min="1"
+                    className="w-full font-medium"
+                    placeholder="Custom minutes..."
+                  />
+                  <Select value={["30","45","60","90","120"].includes(timeLimit) ? timeLimit : ""} onValueChange={(val) => val && setTimeLimit(val)}>
+                    <SelectTrigger className="w-28 shrink-0">
+                      <SelectValue placeholder="Preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 Min</SelectItem>
+                      <SelectItem value="45">45 Min</SelectItem>
+                      <SelectItem value="60">60 Min</SelectItem>
+                      <SelectItem value="90">90 Min</SelectItem>
+                      <SelectItem value="120">120 Min</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -258,6 +289,15 @@ export default function HRDashboard() {
                             ) : (
                               <><Copy className="w-3.5 h-3.5 mr-1" /> Copy Link</>
                             )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendWhatsApp(link)}
+                            disabled={expired || sendingWaId === link.id}
+                            className="text-xs bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                          >
+                            {sendingWaId === link.id ? "Sending..." : "WhatsApp"}
                           </Button>
                           <Button
                             size="icon"

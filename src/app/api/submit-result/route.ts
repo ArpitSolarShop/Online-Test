@@ -26,6 +26,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (linkId) {
+      const existing = await prisma.testResult.findFirst({ where: { linkId } });
+      if (existing) {
+        return NextResponse.json(
+          { error: "This test link has already been submitted." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Calculate Part 1: count false answers
     const falseCount = Object.values(listeningAnswers || {}).filter(
       (v) => v === false

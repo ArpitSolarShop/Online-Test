@@ -31,11 +31,28 @@ function TestContent() {
   const [timerActive, setTimerActive] = useState(false);
 
   const [linkExpired, setLinkExpired] = useState(false);
+  const [linkUsed, setLinkUsed] = useState(false);
+  const [checkingLink, setCheckingLink] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [showValidation1, setShowValidation1] = useState(false);
   const [showValidation2, setShowValidation2] = useState(false);
+
+  useEffect(() => {
+    const linkId = searchParams.get("id");
+    if (!linkId) {
+      setCheckingLink(false);
+      return;
+    }
+    fetch(`/api/check-link?id=${linkId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.used) setLinkUsed(true);
+        setCheckingLink(false);
+      })
+      .catch(() => setCheckingLink(false));
+  }, [searchParams]);
 
   useEffect(() => {
     if (expiresAt > 0 && Date.now() > expiresAt) {
@@ -126,8 +143,34 @@ function TestContent() {
   const part2Selected = Object.values(part2).filter(Boolean).length;
   const isTimeLow = secondsLeft < 120 && secondsLeft > 0;
 
+  // ── LOADING / CHECKING ──
+  if (checkingLink) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <p className="text-sm text-muted-foreground">Checking link validity...</p>
+      </div>
+    );
+  }
+
+  // ── ALREADY USED ──
+  if (linkUsed && step !== "results") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-8 pb-8 space-y-4">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
+            <h1 className="text-xl font-bold">Link Already Used</h1>
+            <p className="text-sm text-muted-foreground">
+              This assessment link has already been submitted. You cannot retake the exam.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // ── EXPIRED ──
-  if (linkExpired) {
+  if (linkExpired && step !== "results") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">

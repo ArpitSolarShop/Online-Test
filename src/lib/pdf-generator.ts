@@ -157,12 +157,55 @@ export async function generateResultPDF(data: FullResultData): Promise<Buffer> {
     doc.fillColor("#000000");
 
     // ═══════════════════════════════════════════════
-    // PAGE 2 — SCORING SHEET
+    // PAGE 2+ — COMPETENCY ASSESSMENT QUESTIONS
     // ═══════════════════════════════════════════════
     doc.addPage();
 
     doc.fontSize(14).font("Helvetica-Bold")
-      .text("Part 2: Competency Scoring Sheet", margin, 40, { align: "center" });
+      .text("Part 2: Competency Assessment", margin, 40, { align: "center" });
+    doc.moveDown(0.2);
+    doc.fontSize(8).font("Helvetica").fillColor("#666666")
+      .text("Instructions: Each statement is marked True (✓) or False (✗) based on candidate's self-assessment.", { align: "center" });
+    doc.moveDown(0.8);
+    doc.fillColor("#000000");
+
+    // Competency questions with True/False answers
+    competencyQuestions.forEach((q) => {
+      const answer = data.competencyAnswers[String(q.id)];
+      const isSelected = answer === true; // In the UI, selecting it means True
+
+      if (doc.y > 750) {
+        doc.addPage();
+      }
+
+      const y = doc.y;
+      doc.fontSize(8).font("Helvetica-Bold").text(`${q.id}.`, margin, y, { width: 18 });
+      doc.font("Helvetica").text(q.textEn, margin + 20, y, { width: contentW - 90 });
+
+      const answerX = pageW - margin - 55;
+      if (isSelected) {
+        doc.save();
+        doc.circle(answerX + 18, y + 4, 10).fillColor("#DBEAFE").fill();
+        doc.fontSize(8).font("Helvetica-Bold").fillColor("#2563EB")
+          .text("TRUE", answerX, y, { width: 40, align: "center" });
+        doc.restore();
+        doc.fillColor("#000000");
+      } else {
+        doc.fontSize(8).font("Helvetica").fillColor("#9CA3AF")
+          .text("FALSE", answerX, y, { width: 40, align: "center" });
+        doc.fillColor("#000000");
+      }
+
+      doc.moveDown(0.4);
+    });
+
+    // ═══════════════════════════════════════════════
+    // SCORING SHEET (Now Part 3)
+    // ═══════════════════════════════════════════════
+    doc.addPage();
+
+    doc.fontSize(14).font("Helvetica-Bold")
+      .text("Part 3: Competency Scoring Sheet", margin, 40, { align: "center" });
     doc.moveDown(0.2);
     doc.fontSize(8).font("Helvetica").fillColor("#666666")
       .text("Instructions: Circle the items you have selected and add up the totals for each style.", { align: "center" });
