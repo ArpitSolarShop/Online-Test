@@ -44,6 +44,7 @@ export async function uploadPDFToDrive(
         body: Readable.from(pdfBuffer),
       },
       fields: "id, webViewLink",
+      supportsAllDrives: true,
     });
 
     return {

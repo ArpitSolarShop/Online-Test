@@ -31,6 +31,8 @@ function TestContent() {
   const [timerActive, setTimerActive] = useState(false);
 
   const [linkExpired, setLinkExpired] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (expiresAt > 0 && Date.now() > expiresAt) {
@@ -49,25 +51,39 @@ function TestContent() {
     return () => clearInterval(interval);
   }, [timerActive, secondsLeft]);
 
-  const submitTest = useCallback(() => {
-    setStep("results");
+  const submitTest = useCallback(async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
     setTimerActive(false);
 
-    // POST results to API (non-blocking — don't delay showing results)
     const linkId = searchParams.get("id") || undefined;
-    fetch("/api/submit-result", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        candidateName,
-        candidatePhone,
-        candidateRole,
-        timeLimitMin,
-        listeningAnswers: part1,
-        competencyAnswers: part2,
-        linkId,
-      }),
-    }).catch((err) => console.error("Failed to save result:", err));
+    try {
+      const res = await fetch("/api/submit-result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName,
+          candidatePhone,
+          candidateRole,
+          timeLimitMin,
+          listeningAnswers: part1,
+          competencyAnswers: part2,
+          linkId,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save result on server.");
+      }
+      
+      setStep("results");
+    } catch (err) {
+      console.error("Failed to save result:", err);
+      setSubmitError("Failed to save your test results. Please try submitting again.");
+      setTimerActive(true); // resume timer in case they need to try again
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [candidateName, candidatePhone, candidateRole, timeLimitMin, part1, part2, searchParams]);
 
   useEffect(() => {
@@ -372,8 +388,14 @@ function TestContent() {
               ))}
             </div>
 
-            <div className="flex justify-end pt-3 pb-4">
-              <Button onClick={() => { setStep("part2"); setPart2Page(0); }}>
+            <div className="flex flex-col items-end pt-3 pb-4 space-y-2">
+              {part1Answered < 20 && (
+                <span className="text-xs text-red-500 font-medium">Please answer all 20 questions to proceed.</span>
+              )}
+              <Button
+                onClick={() => { setStep("part2"); setPart2Page(0); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                disabled={part1Answered < 20}
+              >
                 Next: Part 2 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
@@ -473,19 +495,32 @@ function TestContent() {
                   onClick={() => {
                     if (part2Page > 0) setPart2Page((p) => p - 1);
                     else setStep("part1");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 >
                   <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Back
                 </Button>
 
                 {part2Page < totalPages - 1 ? (
-                  <Button size="sm" onClick={() => setPart2Page((p) => p + 1)}>
+                  <Button size="sm" onClick={() => { setPart2Page((p) => p + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                     Next Page <ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 ) : (
-                  <Button onClick={submitTest} className="bg-green-600 hover:bg-green-700 text-white">
-                    Submit Test
-                  </Button>
+                  <div className="flex flex-col items-end space-y-1.5">
+                    {pairsAnswered < 40 && (
+                      <span className="text-xs text-red-500 font-medium text-right max-w-[200px]">Please complete all 40 pairs to submit.</span>
+                    )}
+                    {submitError && (
+                      <span className="text-xs text-red-500 font-medium text-right max-w-[250px]">{submitError}</span>
+                    )}
+                    <Button
+                      onClick={submitTest}
+                      disabled={pairsAnswered < 40 || isSubmitting}
+                      className="bg-green-600 hover:bg-green-700 text-white disabled:bg-muted disabled:text-muted-foreground"
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit Test"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </>
