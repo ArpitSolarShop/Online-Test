@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       scores[a] >= scores[b] ? a : b
     );
 
-    // Save to Neon Postgres via Prisma
+    // Save to Supabase Postgres via Prisma
     const result = await prisma.testResult.create({
       data: {
         candidateName,
