@@ -34,6 +34,9 @@ function TestContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [showValidation1, setShowValidation1] = useState(false);
+  const [showValidation2, setShowValidation2] = useState(false);
+
   useEffect(() => {
     if (expiresAt > 0 && Date.now() > expiresAt) {
       setTimeout(() => setLinkExpired(true), 0);
@@ -355,7 +358,7 @@ function TestContent() {
 
             <div className="space-y-2">
               {listeningQuestions.map((q) => (
-                <Card key={q.id} className="overflow-hidden">
+                <Card key={q.id} className={`overflow-hidden transition-all duration-300 ${showValidation1 && part1[q.id] === undefined ? "border-red-500 ring-2 ring-red-500 bg-red-50" : ""}`}>
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                       <div className="space-y-0.5 flex-1 min-w-0">
@@ -389,12 +392,18 @@ function TestContent() {
             </div>
 
             <div className="flex flex-col items-end pt-3 pb-4 space-y-2">
-              {part1Answered < 20 && (
-                <span className="text-xs text-red-500 font-medium">Please answer all 20 questions to proceed.</span>
+              {showValidation1 && part1Answered < 20 && (
+                <span className="text-xs text-red-600 font-bold">Please answer highlighted questions to proceed.</span>
               )}
               <Button
-                onClick={() => { setStep("part2"); setPart2Page(0); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                disabled={part1Answered < 20}
+                onClick={() => { 
+                  if (part1Answered < 20) {
+                    setShowValidation1(true);
+                  } else {
+                    setShowValidation1(false);
+                    setStep("part2"); setPart2Page(0); window.scrollTo({ top: 0, behavior: "smooth" }); 
+                  }
+                }}
               >
                 Next: Part 2 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -437,7 +446,7 @@ function TestContent() {
                   const aSelected = !!part2[qA.id];
                   const bSelected = !!part2[qB.id];
                   return (
-                    <Card key={qA.id} className="overflow-hidden">
+                    <Card key={qA.id} className={`overflow-hidden transition-all duration-300 ${showValidation2 && !aSelected && !bSelected ? "border-red-500 ring-2 ring-red-500 bg-red-50" : ""}`}>
                       <CardContent className="p-0">
                         <div className="px-3 py-1.5 bg-muted/50 border-b">
                           <span className="text-[10px] font-bold text-muted-foreground">Pair {pairNum} of 40</span>
@@ -502,20 +511,41 @@ function TestContent() {
                 </Button>
 
                 {part2Page < totalPages - 1 ? (
-                  <Button size="sm" onClick={() => { setPart2Page((p) => p + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                    Next Page <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
+                  <div className="flex flex-col items-end space-y-1.5">
+                    {showValidation2 && pagePairs.some(([qA, qB]) => !part2[qA.id] && !part2[qB.id]) && (
+                      <span className="text-xs text-red-600 font-bold max-w-[200px] text-right">Please select an option for highlighted pairs.</span>
+                    )}
+                    <Button size="sm" onClick={() => { 
+                      const isPageComplete = pagePairs.every(([qA, qB]) => part2[qA.id] !== undefined || part2[qB.id] !== undefined);
+                      if (!isPageComplete) {
+                        setShowValidation2(true);
+                      } else {
+                        setShowValidation2(false);
+                        setPart2Page((p) => p + 1); 
+                        window.scrollTo({ top: 0, behavior: "smooth" }); 
+                      }
+                    }}>
+                      Next Page <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-end space-y-1.5">
-                    {pairsAnswered < 40 && (
-                      <span className="text-xs text-red-500 font-medium text-right max-w-[200px]">Please complete all 40 pairs to submit.</span>
+                    {showValidation2 && pairsAnswered < 40 && (
+                      <span className="text-xs text-red-600 font-bold max-w-[200px] text-right">Please select an option for highlighted pairs.</span>
                     )}
                     {submitError && (
                       <span className="text-xs text-red-500 font-medium text-right max-w-[250px]">{submitError}</span>
                     )}
                     <Button
-                      onClick={submitTest}
-                      disabled={pairsAnswered < 40 || isSubmitting}
+                      onClick={() => {
+                        const isPageComplete = pagePairs.every(([qA, qB]) => part2[qA.id] !== undefined || part2[qB.id] !== undefined);
+                        if (!isPageComplete) {
+                          setShowValidation2(true);
+                        } else if (pairsAnswered === 40) {
+                          submitTest();
+                        }
+                      }}
+                      disabled={isSubmitting}
                       className="bg-green-600 hover:bg-green-700 text-white disabled:bg-muted disabled:text-muted-foreground"
                     >
                       {isSubmitting ? "Submitting..." : "Submit Test"}

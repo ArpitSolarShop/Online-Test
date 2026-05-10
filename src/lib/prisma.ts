@@ -1,14 +1,18 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
-/**
- * Lazy Prisma singleton — only creates the client when first accessed at runtime.
- * This prevents build-time crashes when DATABASE_URL is not yet configured.
- */
 function getPrisma(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient();
+    const connectionString = process.env.DATABASE_URL || "";
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaNeon(pool);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
   }
   return globalForPrisma.prisma;
 }
