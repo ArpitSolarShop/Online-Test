@@ -121,6 +121,12 @@ function TestContent() {
       });
 
       if (!res.ok) {
+        if (res.status === 403) {
+          // If it was already submitted (e.g. they clicked twice or refreshed), 
+          // just show them the results page.
+          setStep("results");
+          return;
+        }
         throw new Error("Failed to save result on server.");
       }
       
@@ -128,7 +134,7 @@ function TestContent() {
     } catch (err) {
       console.error("Failed to save result:", err);
       setSubmitError("Failed to save your test results. Please try submitting again.");
-      setTimerActive(true); // resume timer in case they need to try again
+      setTimerActive(true);
     } finally {
       setIsSubmitting(false);
     }
