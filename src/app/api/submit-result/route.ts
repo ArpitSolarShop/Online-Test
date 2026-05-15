@@ -87,13 +87,13 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       // Mark the link as used if it exists
       if (linkId) {
-        await (tx as any).testLink.updateMany({
+        await tx.testLink.updateMany({
           where: { id: linkId },
           data: { isUsed: true },
         });
       }
 
-      return await (tx as any).testResult.create({
+      return await tx.testResult.create({
         data: {
           candidateName,
           candidatePhone,

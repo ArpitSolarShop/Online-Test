@@ -10,9 +10,15 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json({ links });
-  } catch (error) {
-    console.error("[api/links] GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch links" }, { status: 500 });
+  } catch (error: any) {
+    console.error("[api/links] GET error:", error?.message || error);
+    // Log the full stack trace if possible
+    if (error?.stack) console.error(error.stack);
+    
+    return NextResponse.json({ 
+      error: "Failed to fetch links",
+      details: error?.message || "Unknown error"
+    }, { status: 500 });
   }
 }
 
@@ -39,9 +45,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ link });
-  } catch (error) {
-    console.error("[api/links] POST error:", error);
-    return NextResponse.json({ error: "Failed to create link" }, { status: 500 });
+  } catch (error: any) {
+    console.error("[api/links] POST error:", error?.message || error);
+    if (error?.stack) console.error(error.stack);
+    
+    return NextResponse.json({ 
+      error: "Failed to create link",
+      details: error?.message || "Unknown error"
+    }, { status: 500 });
   }
 }
 

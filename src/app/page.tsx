@@ -71,7 +71,6 @@ function QRModal({
     a.click();
   }, [link.candidateName]);
 
-  // Close on backdrop click
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.target === e.currentTarget) onClose();
@@ -79,7 +78,6 @@ function QRModal({
     [onClose]
   );
 
-  // Close on Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -96,7 +94,6 @@ function QRModal({
       onClick={handleBackdropClick}
     >
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center gap-5 animate-in zoom-in-95 duration-200">
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors rounded-full p-1 hover:bg-accent"
@@ -105,7 +102,6 @@ function QRModal({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Title */}
         <div className="text-center space-y-0.5">
           <h2 className="text-base font-bold tracking-tight flex items-center gap-1.5 justify-center">
             <QrCode className="w-4 h-4" /> Scan to Take Test
@@ -115,12 +111,10 @@ function QRModal({
           </p>
         </div>
 
-        {/* QR Canvas */}
         <div className="rounded-xl overflow-hidden border shadow-sm bg-white p-2">
           <canvas ref={canvasRef} />
         </div>
 
-        {/* Candidate info */}
         <div className="w-full rounded-lg bg-muted/50 border px-4 py-3 space-y-1.5">
           <div className="flex items-center gap-2 text-xs">
             <User className="w-3.5 h-3.5 text-muted-foreground" />
@@ -139,12 +133,10 @@ function QRModal({
           </div>
         </div>
 
-        {/* URL preview */}
         <p className="text-[10px] text-muted-foreground text-center break-all leading-relaxed px-2 line-clamp-2">
           {url}
         </p>
 
-        {/* Actions */}
         <div className="flex gap-2 w-full">
           <Button
             variant="outline"
@@ -177,6 +169,7 @@ export default function HRDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState<GeneratedLink | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchLinks = async () => {
     try {
@@ -191,8 +184,27 @@ export default function HRDashboard() {
   };
 
   useEffect(() => {
-    setTimeout(() => fetchLinks(), 0);
+    fetchLinks();
   }, []);
+
+  const deleteLink = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this link?")) return;
+    try {
+      const res = await fetch(`/api/links?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setLinks((prev) => prev.filter((l) => l.id !== id));
+        toast.success("Link deleted");
+      }
+    } catch {
+      toast.error("Failed to delete link");
+    }
+  };
+
+  const filteredLinks = links.filter((l) =>
+    l.candidateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.candidatePhone.includes(searchTerm) ||
+    l.candidateRole.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getLinkUrl = (link: GeneratedLink) => {
     const base = typeof window !== "undefined" ? window.location.origin : "";
@@ -267,19 +279,6 @@ export default function HRDashboard() {
     }
   };
 
-  const deleteLink = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this link?")) return;
-    try {
-      const res = await fetch(`/api/links?id=${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setLinks((prev) => prev.filter((l) => l.id !== id));
-        toast.success("Link deleted");
-      }
-    } catch {
-      toast.error("Failed to delete link");
-    }
-  };
-
   const isExpired = (link: GeneratedLink) => {
     return new Date().getTime() > new Date(link.expiresAt).getTime();
   };
@@ -296,12 +295,10 @@ export default function HRDashboard() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* QR Modal */}
       {qrLink && (
         <QRModal link={qrLink} onClose={() => setQrLink(null)} />
       )}
 
-      {/* Header */}
       <header className="border-b px-4 sm:px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
@@ -327,7 +324,6 @@ export default function HRDashboard() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Link Generator Form */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -336,7 +332,6 @@ export default function HRDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Candidate Name */}
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-xs flex items-center gap-1">
                   <User className="w-3 h-3" /> Candidate Name *
@@ -349,7 +344,6 @@ export default function HRDashboard() {
                 />
               </div>
 
-              {/* Phone */}
               <div className="space-y-1.5">
                 <Label htmlFor="phone" className="text-xs flex items-center gap-1">
                   <Phone className="w-3 h-3" /> Phone Number *
@@ -363,7 +357,6 @@ export default function HRDashboard() {
                 />
               </div>
 
-              {/* Role */}
               <div className="space-y-1.5">
                 <Label htmlFor="role" className="text-xs flex items-center gap-1">
                   <Briefcase className="w-3 h-3" /> Role / Position *
@@ -376,7 +369,6 @@ export default function HRDashboard() {
                 />
               </div>
 
-              {/* Time Limit */}
               <div className="space-y-1.5">
                 <Label className="text-xs flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Time Limit (Minutes)
@@ -391,11 +383,7 @@ export default function HRDashboard() {
                     placeholder="Custom minutes..."
                   />
                   <Select
-                    value={
-                      ["30", "45", "60", "90", "120"].includes(timeLimit)
-                        ? timeLimit
-                        : ""
-                    }
+                    value={["30", "45", "60", "90", "120"].includes(timeLimit) ? timeLimit : ""}
                     onValueChange={(val) => val && setTimeLimit(val)}
                   >
                     <SelectTrigger className="w-28 shrink-0">
@@ -423,15 +411,22 @@ export default function HRDashboard() {
           </CardContent>
         </Card>
 
-        {/* Generated Links List */}
         {links.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Generated Links ({links.length})
-            </h3>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Generated Links ({filteredLinks.length})
+              </h3>
+              <Input
+                placeholder="Search candidates..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-[200px] h-8 text-xs"
+              />
+            </div>
 
             <div className="space-y-2">
-              {links.map((link) => {
+              {filteredLinks.map((link) => {
                 const expired = isExpired(link);
                 return (
                   <Card key={link.id} className={expired ? "opacity-50" : ""}>
@@ -460,19 +455,16 @@ export default function HRDashboard() {
                         </div>
 
                         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                          {/* QR Button */}
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setQrLink(link)}
                             disabled={expired}
                             className="text-xs"
-                            title="Show QR Code"
                           >
                             <QrCode className="w-3.5 h-3.5 mr-1" /> QR Code
                           </Button>
 
-                          {/* Copy Link */}
                           <Button
                             size="sm"
                             variant={copiedId === link.id ? "default" : "outline"}
@@ -487,7 +479,6 @@ export default function HRDashboard() {
                             )}
                           </Button>
 
-                          {/* WhatsApp */}
                           <Button
                             size="sm"
                             variant="outline"
@@ -498,7 +489,6 @@ export default function HRDashboard() {
                             {sendingWaId === link.id ? "Sending..." : "WhatsApp"}
                           </Button>
 
-                          {/* Delete */}
                           <Button
                             size="icon"
                             variant="ghost"
@@ -524,8 +514,7 @@ export default function HRDashboard() {
         )}
       </main>
 
-      <Separator />
-      <footer className="py-4 px-4 text-center text-xs text-muted-foreground">
+      <footer className="py-4 px-4 text-center text-xs text-muted-foreground border-t mt-auto">
         Hiring Assessment Tool — Listening Attitude &amp; Communication Competency Analysis
       </footer>
     </div>
