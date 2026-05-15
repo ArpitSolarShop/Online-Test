@@ -12,14 +12,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const existing = await prisma.testResult.findFirst({
+    // 1. Check if it was already submitted
+    const existingResult = await prisma.testResult.findFirst({
       where: { linkId },
       select: { id: true },
     });
 
-    return NextResponse.json({
-      used: !!existing,
+    if (existingResult) {
+      return NextResponse.json({ used: true });
+    }
+
+    // 2. Check if the link exists in the database (new approach)
+    const link = await prisma.testLink.findUnique({
+      where: { id: linkId },
     });
+
+    if (link) {
+      return NextResponse.json({
+        used: false,
+        link: {
+          name: link.candidateName,
+          phone: link.candidatePhone,
+          role: link.candidateRole,
+          timeLimit: link.timeLimitMin,
+          expiresAt: link.expiresAt.getTime(),
+        },
+      });
+    }
+
+    // 3. If not found in either, it might be an old link with data in URL,
+    // or just a completely invalid ID.
+    return NextResponse.json({ used: false });
   } catch (error) {
     console.error("[check-link] Error:", error);
     return NextResponse.json({ error: "Failed to check link" }, { status: 500 });

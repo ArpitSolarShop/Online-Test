@@ -26,6 +26,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!listeningAnswers || typeof listeningAnswers !== "object") {
+      return NextResponse.json({ error: "Invalid listening answers" }, { status: 400 });
+    }
+
+    if (!competencyAnswers || typeof competencyAnswers !== "object") {
+      return NextResponse.json({ error: "Invalid competency answers" }, { status: 400 });
+    }
+
     if (linkId) {
       const existing = await prisma.testResult.findFirst({ where: { linkId } });
       if (existing) {
@@ -76,24 +84,34 @@ export async function POST(req: NextRequest) {
     );
 
     // Save to Supabase Postgres via Prisma
-    const result = await prisma.testResult.create({
-      data: {
-        candidateName,
-        candidatePhone,
-        candidateRole,
-        timeLimitMin: timeLimitMin || 60,
-        listeningAnswers: listeningAnswers || {},
-        falseCount,
-        listeningRating,
-        competencyAnswers: competencyAnswers || {},
-        actionScore,
-        processScore,
-        peopleScore,
-        ideaScore,
-        dominantStyle,
-        totalSelected,
-        linkId: linkId || null,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // Mark the link as used if it exists
+      if (linkId) {
+        await (tx as any).testLink.updateMany({
+          where: { id: linkId },
+          data: { isUsed: true },
+        });
+      }
+
+      return await (tx as any).testResult.create({
+        data: {
+          candidateName,
+          candidatePhone,
+          candidateRole,
+          timeLimitMin: timeLimitMin || 60,
+          listeningAnswers: listeningAnswers || {},
+          falseCount,
+          listeningRating,
+          competencyAnswers: competencyAnswers || {},
+          actionScore,
+          processScore,
+          peopleScore,
+          ideaScore,
+          dominantStyle,
+          totalSelected,
+          linkId: linkId || null,
+        },
+      });
     });
 
     // Generate PDF and upload to Supabase Storage

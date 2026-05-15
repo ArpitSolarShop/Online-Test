@@ -17,17 +17,17 @@ type StyleType = "Action" | "Process" | "People" | "Idea";
 
 function TestContent() {
   const searchParams = useSearchParams();
-  const candidateName = searchParams.get("name") || "";
-  const candidatePhone = searchParams.get("phone") || "";
-  const candidateRole = searchParams.get("role") || "";
-  const timeLimitMin = parseInt(searchParams.get("t") || "60", 10);
-  const expiresAt = parseInt(searchParams.get("exp") || "0", 10);
+  const [candidateName, setCandidateName] = useState("");
+  const [candidatePhone, setCandidatePhone] = useState("");
+  const [candidateRole, setCandidateRole] = useState("");
+  const [timeLimitMin, setTimeLimitMin] = useState(60);
+  const [expiresAt, setExpiresAt] = useState(0);
 
   const [step, setStep] = useState<"start" | "part1" | "part2" | "results">("start");
   const [part1, setPart1] = useState<Record<number, boolean>>({});
   const [part2, setPart2] = useState<Record<number, boolean>>({});
   const [part2Page, setPart2Page] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(timeLimitMin * 60);
+  const [secondsLeft, setSecondsLeft] = useState(60 * 60);
   const [timerActive, setTimerActive] = useState(false);
 
   const [linkExpired, setLinkExpired] = useState(false);
@@ -40,15 +40,43 @@ function TestContent() {
   const [showValidation2, setShowValidation2] = useState(false);
 
   useEffect(() => {
+    const name = searchParams.get("name");
+    const phone = searchParams.get("phone");
+    const role = searchParams.get("role");
+    const t = searchParams.get("t");
+    const exp = searchParams.get("exp");
+
+    setTimeout(() => {
+      if (name) setCandidateName(name);
+      if (phone) setCandidatePhone(phone);
+      if (role) setCandidateRole(role);
+      if (t) {
+        const mins = parseInt(t, 10);
+        setTimeLimitMin(mins);
+        setSecondsLeft(mins * 60);
+      }
+      if (exp) setExpiresAt(parseInt(exp, 10));
+    }, 0);
+  }, [searchParams]);
+
+  useEffect(() => {
     const linkId = searchParams.get("id");
     if (!linkId) {
-      setCheckingLink(false);
+      setTimeout(() => setCheckingLink(false), 0);
       return;
     }
     fetch(`/api/check-link?id=${linkId}`)
       .then(res => res.json())
       .then(data => {
         if (data.used) setLinkUsed(true);
+        if (data.link) {
+          setCandidateName(data.link.name);
+          setCandidatePhone(data.link.phone);
+          setCandidateRole(data.link.role);
+          setTimeLimitMin(data.link.timeLimit);
+          setExpiresAt(data.link.expiresAt);
+          setSecondsLeft(data.link.timeLimit * 60);
+        }
         setCheckingLink(false);
       })
       .catch(() => setCheckingLink(false));

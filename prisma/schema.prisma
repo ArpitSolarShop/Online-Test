@@ -45,3 +45,20 @@ model TestResult {
   @@index([createdAt])
   @@index([linkId])
 }
+
+model TestLink {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  candidateName  String
+  candidatePhone String
+  candidateRole  String
+  timeLimitMin   Int
+  
+  isUsed    Boolean @default(false)
+
+  @@index([candidatePhone])
+  @@index([createdAt])
+}
+

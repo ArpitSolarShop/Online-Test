@@ -33,13 +33,12 @@ import {
 
 interface GeneratedLink {
   id: string;
-  name: string;
-  phone: string;
-  role: string;
-  timeLimit: number;
-  createdAt: number;
-  expiresAt: number;
-  url: string;
+  candidateName: string;
+  candidatePhone: string;
+  candidateRole: string;
+  timeLimitMin: number;
+  createdAt: string;
+  expiresAt: string;
 }
 
 // ─── QR Modal ────────────────────────────────────────────────────────────────
@@ -54,22 +53,23 @@ function QRModal({
 
   useEffect(() => {
     if (canvasRef.current) {
-      QRCode.toCanvas(canvasRef.current, link.url, {
+      const url = typeof window !== "undefined" ? `${window.location.origin}/test?id=${link.id}` : "";
+      QRCode.toCanvas(canvasRef.current, url, {
         width: 280,
         margin: 2,
         color: { dark: "#0f172a", light: "#ffffff" },
         errorCorrectionLevel: "H",
       });
     }
-  }, [link.url]);
+  }, [link.id]);
 
   const handleDownload = useCallback(() => {
     if (!canvasRef.current) return;
     const a = document.createElement("a");
     a.href = canvasRef.current.toDataURL("image/png");
-    a.download = `test-qr-${link.name.replace(/\s+/g, "-")}.png`;
+    a.download = `test-qr-${link.candidateName.replace(/\s+/g, "-")}.png`;
     a.click();
-  }, [link.name]);
+  }, [link.candidateName]);
 
   // Close on backdrop click
   const handleBackdropClick = useCallback(
@@ -87,6 +87,8 @@ function QRModal({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const url = typeof window !== "undefined" ? `${window.location.origin}/test?id=${link.id}` : "";
 
   return (
     <div
@@ -122,24 +124,24 @@ function QRModal({
         <div className="w-full rounded-lg bg-muted/50 border px-4 py-3 space-y-1.5">
           <div className="flex items-center gap-2 text-xs">
             <User className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="font-semibold">{link.name}</span>
+            <span className="font-semibold">{link.candidateName}</span>
             <Badge variant="secondary" className="text-[10px] ml-auto">
-              {link.role}
+              {link.candidateRole}
             </Badge>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Phone className="w-3.5 h-3.5" />
-            <span>{link.phone}</span>
+            <span>{link.candidatePhone}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" />
-            <span>{link.timeLimit} min time limit</span>
+            <span>{link.timeLimitMin} min time limit</span>
           </div>
         </div>
 
         {/* URL preview */}
         <p className="text-[10px] text-muted-foreground text-center break-all leading-relaxed px-2 line-clamp-2">
-          {link.url}
+          {url}
         </p>
 
         {/* Actions */}
@@ -175,89 +177,81 @@ export default function HRDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [sendingWaId, setSendingWaId] = useState<string | null>(null);
   const [qrLink, setQrLink] = useState<GeneratedLink | null>(null);
-  const [now, setNow] = useState(0);
 
-  useEffect(() => {
-    setTimeout(() => setNow(Date.now()), 0);
-    const interval = setInterval(() => setNow(Date.now()), 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("hr_test_links");
-    if (saved) {
-      setTimeout(() => {
-        try {
-          setLinks(JSON.parse(saved));
-        } catch {
-          /* ignore */
-        }
-      }, 0);
+  const fetchLinks = async () => {
+    try {
+      const res = await fetch("/api/links");
+      const data = await res.json();
+      if (data.links) {
+        setLinks(data.links);
+      }
+    } catch {
+      console.error("Failed to fetch links");
     }
-  }, []);
+  };
 
   useEffect(() => {
-    localStorage.setItem("hr_test_links", JSON.stringify(links));
-  }, [links]);
+    setTimeout(() => fetchLinks(), 0);
+  }, []);
 
-  const generateLink = () => {
+  const getLinkUrl = (link: GeneratedLink) => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    return `${base}/test?id=${link.id}`;
+  };
+
+  const generateLink = async () => {
     if (!name.trim() || !phone.trim() || !role.trim()) return;
 
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    const createdAt = Date.now();
-    const timeLimitNum = parseInt(timeLimit, 10);
-    const expiresAt = createdAt + timeLimitNum * 60 * 1000;
-
-    const params = new URLSearchParams({
-      id,
-      name: name.trim(),
-      phone: phone.trim(),
-      role: role.trim(),
-      t: timeLimit,
-      exp: expiresAt.toString(),
-    });
-
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${base}/test?${params.toString()}`;
-
-    const newLink: GeneratedLink = {
-      id,
-      name: name.trim(),
-      phone: phone.trim(),
-      role: role.trim(),
-      timeLimit: timeLimitNum,
-      createdAt,
-      expiresAt,
-      url,
-    };
-
-    setLinks((prev) => [newLink, ...prev]);
-    setName("");
-    setPhone("");
-    setRole("");
-
-    // Auto-open the QR modal for the newly generated link
-    setQrLink(newLink);
+    try {
+      const res = await fetch("/api/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName: name.trim(),
+          candidatePhone: phone.trim(),
+          candidateRole: role.trim(),
+          timeLimitMin: timeLimit,
+        }),
+      });
+      const data = await res.json();
+      if (data.link) {
+        setLinks((prev) => [data.link, ...prev]);
+        setName("");
+        setPhone("");
+        setRole("");
+        setQrLink(data.link);
+        toast.success("Link generated and saved!");
+      } else {
+        toast.error(data.error || "Failed to generate link");
+      }
+    } catch {
+      toast.error("Network error while generating link");
+    }
   };
 
   const copyLink = (link: GeneratedLink) => {
-    navigator.clipboard.writeText(link.url);
+    navigator.clipboard.writeText(getLinkUrl(link));
     setCopiedId(link.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const sendWhatsApp = async (link: GeneratedLink) => {
     setSendingWaId(link.id);
+    const url = getLinkUrl(link);
     try {
       const res = await fetch("/api/send-whatsapp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: link.phone, name: link.name, url: link.url }),
+        body: JSON.stringify({ 
+          phone: link.candidatePhone, 
+          name: link.candidateName, 
+          url 
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         toast.success("WhatsApp message sent!", {
-          description: `Test link delivered to ${link.phone}`,
+          description: `Test link delivered to ${link.candidatePhone}`,
         });
       } else {
         toast.error("WhatsApp send failed", {
@@ -273,14 +267,25 @@ export default function HRDashboard() {
     }
   };
 
-  const deleteLink = (id: string) => {
-    setLinks((prev) => prev.filter((l) => l.id !== id));
+  const deleteLink = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this link?")) return;
+    try {
+      const res = await fetch(`/api/links?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setLinks((prev) => prev.filter((l) => l.id !== id));
+        toast.success("Link deleted");
+      }
+    } catch {
+      toast.error("Failed to delete link");
+    }
   };
 
-  const isExpired = (link: GeneratedLink) => now > 0 && now > link.expiresAt;
+  const isExpired = (link: GeneratedLink) => {
+    return new Date().getTime() > new Date(link.expiresAt).getTime();
+  };
 
-  const formatDate = (ts: number) => {
-    return new Date(ts).toLocaleString("en-IN", {
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -434,12 +439,12 @@ export default function HRDashboard() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold">{link.name}</span>
+                            <span className="text-sm font-semibold">{link.candidateName}</span>
                             <Badge variant="secondary" className="text-[10px]">
-                              {link.role}
+                              {link.candidateRole}
                             </Badge>
                             <span className="text-[11px] text-muted-foreground">
-                              {link.phone}
+                              {link.candidatePhone}
                             </span>
                             {expired && (
                               <Badge variant="destructive" className="text-[10px]">
@@ -450,7 +455,7 @@ export default function HRDashboard() {
                           <div className="text-[10px] text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5">
                             <span>Created: {formatDate(link.createdAt)}</span>
                             <span>Expires: {formatDate(link.expiresAt)}</span>
-                            <span>{link.timeLimit} min</span>
+                            <span>{link.timeLimitMin} min</span>
                           </div>
                         </div>
 
