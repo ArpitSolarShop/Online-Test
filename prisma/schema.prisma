@@ -8,38 +8,25 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// All models below live in the "hiring_test" PostgreSQL schema.
-// The CRM tables (agents, leads, deals, etc.) remain untouched in "public".
-// ─────────────────────────────────────────────────────────────────────────────
-
 model TestResult {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  // Candidate info
-  candidateName  String
-  candidatePhone String
-  candidateRole  String
-  timeLimitMin   Int
-
-  // Part 1: Listening Attitude
-  listeningAnswers Json   // { "1": true, "2": false, ... }
-  falseCount       Int
-  listeningRating  String // "empathetic" | "good" | "practice" | "poor"
-
-  // Part 2: Competency Analysis
-  competencyAnswers Json  // { "1": true, "2": false, ... }
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now())
+  candidateName     String
+  candidatePhone    String
+  candidateRole     String
+  timeLimitMin      Int
+  listeningAnswers  Json
+  falseCount        Int
+  listeningRating   String
+  competencyAnswers Json
   actionScore       Int
   processScore      Int
   peopleScore       Int
   ideaScore         Int
-  dominantStyle     String // "Action" | "Process" | "People" | "Idea"
+  dominantStyle     String
   totalSelected     Int
-
-  // Meta
-  linkId  String?
-  pdfPath String?
+  linkId            String?
+  pdfPath           String?
 
   @@index([candidatePhone])
   @@index([createdAt])
@@ -47,18 +34,15 @@ model TestResult {
 }
 
 model TestLink {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
   candidateName  String
   candidatePhone String
   candidateRole  String
   timeLimitMin   Int
-  
-  isUsed    Boolean @default(false)
+  isUsed         Boolean  @default(false)
 
   @@index([candidatePhone])
   @@index([createdAt])
 }
-

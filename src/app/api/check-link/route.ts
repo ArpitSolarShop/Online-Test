@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (existingResult) {
-      return NextResponse.json({ used: true });
+      return NextResponse.json({ used: true, submitted: true });
     }
 
     // 2. Check if the link exists in the database (new approach)

@@ -186,10 +186,13 @@ function TestContent() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">
           <CardContent className="pt-8 pb-8 space-y-4">
-            <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
-            <h1 className="text-xl font-bold">Link Already Used</h1>
+            <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto" />
+            <h1 className="text-xl font-bold">Assessment Submitted</h1>
             <p className="text-sm text-muted-foreground">
-              This assessment link has already been submitted. You cannot retake the exam.
+              Your test has already been successfully submitted. Thank you for your time.
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              You can close this window now.
             </p>
           </CardContent>
         </Card>
